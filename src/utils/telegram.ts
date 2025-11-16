@@ -1,114 +1,29 @@
-// Telegram WebApp types
-interface TelegramWebAppUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  is_premium?: boolean;
+// Проверка, открыт ли WebApp в Telegram
+export function isTelegramWebApp() {
+  return typeof window !== "undefined" && (window as any).Telegram?.WebApp;
 }
 
-interface TelegramWebApp {
-  initData: string;
-  initDataUnsafe: {
-    user?: TelegramWebAppUser;
-    query_id?: string;
-    auth_date?: number;
-    hash?: string;
-  };
-  version: string;
-  platform: string;
-  colorScheme: 'light' | 'dark';
-  themeParams: {
-    bg_color?: string;
-    text_color?: string;
-    hint_color?: string;
-    link_color?: string;
-    button_color?: string;
-    button_text_color?: string;
-  };
-  isExpanded: boolean;
-  viewportHeight: number;
-  viewportStableHeight: number;
-  headerColor: string;
-  backgroundColor: string;
-  ready: () => void;
-  expand: () => void;
-  close: () => void;
-  enableClosingConfirmation: () => void;
-  disableClosingConfirmation: () => void;
-  setHeaderColor: (color: string) => void;
-  setBackgroundColor: (color: string) => void;
-  showPopup: (params: {
-    title?: string;
-    message: string;
-    buttons?: Array<{ id?: string; type?: string; text: string }>;
-  }, callback?: (buttonId: string) => void) => void;
-  showAlert: (message: string, callback?: () => void) => void;
-  showConfirm: (message: string, callback?: (confirmed: boolean) => void) => void;
-}
+// Инициализация Telegram WebApp
+export function initTelegramWebApp() {
+  const tg = (window as any).Telegram.WebApp;
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: TelegramWebApp;
-    };
+  if (tg && tg.ready) {
+    tg.ready();
+    tg.expand();
+    tg.disableVerticalSwipes?.();
   }
 }
 
-// Check if running in Telegram
-export const isTelegramWebApp = (): boolean => {
-  return typeof window !== 'undefined' && window.Telegram?.WebApp !== undefined;
-};
+// Получение пользователя
+export function getTelegramUser() {
+  const tg = (window as any).Telegram?.WebApp;
 
-// Get Telegram WebApp instance
-export const getTelegramWebApp = (): TelegramWebApp | null => {
-  if (isTelegramWebApp()) {
-    return window.Telegram!.WebApp;
+  if (!tg) return null;
+
+  try {
+    return tg.initDataUnsafe?.user || null;
+  } catch (e) {
+    console.warn("Ошибка чтения initData", e);
+    return null;
   }
-  return null;
-};
-
-// Get current Telegram user
-export const getTelegramUser = (): TelegramWebAppUser | null => {
-  const webApp = getTelegramWebApp();
-  return webApp?.initDataUnsafe?.user || null;
-};
-
-// Initialize Telegram WebApp
-export const initTelegramWebApp = () => {
-  const webApp = getTelegramWebApp();
-  if (webApp) {
-    webApp.ready();
-    webApp.expand();
-    
-    // Set theme colors to match easyme branding
-    webApp.setHeaderColor('#a4b8a0');
-    webApp.setBackgroundColor('#f0f4ef');
-    
-    // Enable closing confirmation
-    webApp.enableClosingConfirmation();
-  }
-};
-
-// Show Telegram alert
-export const showTelegramAlert = (message: string, callback?: () => void) => {
-  const webApp = getTelegramWebApp();
-  if (webApp) {
-    webApp.showAlert(message, callback);
-  } else {
-    alert(message);
-    callback?.();
-  }
-};
-
-// Show Telegram confirmation
-export const showTelegramConfirm = (message: string, callback?: (confirmed: boolean) => void) => {
-  const webApp = getTelegramWebApp();
-  if (webApp) {
-    webApp.showConfirm(message, callback);
-  } else {
-    const confirmed = confirm(message);
-    callback?.(confirmed);
-  }
-};
+}
